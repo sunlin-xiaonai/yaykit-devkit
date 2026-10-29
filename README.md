@@ -49,6 +49,7 @@ cd my-timer
 | `firmware/_template/` | 应用模板：一个能跑的计数器，带 `app.json` 和主机测试；`kit new` 从它起步 |
 | `firmware/partitions/` | 圆屏的分区表（yaykit-v1） |
 | `firmware/tools/yay_dev.py` | 写进圆屏、看日志、截图、看内存（`kit` 用它） |
+| `tools/` | `./kit check` 的检查（`check_app.py`）；比两份镜像是不是同一份代码（`compare_images.py`：Mac 和 Linux 编的只差 ELF 哈希和两处校验） |
 | `config/` | 编译设置：应用仓库用的（`app.defaults`），提交用的那份（`release.defaults`） |
 | `app/` | `kit new` 放进新应用仓库的几个文件 |
 | `docs/` | 上面那些文档 |

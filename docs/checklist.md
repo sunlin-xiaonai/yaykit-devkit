@@ -8,7 +8,7 @@
 |---|---|
 | 项目名 `yaykit_<slug，连字符换下划线>`，`app.json` 的 `slug` 和它对得上 | — |
 | `app.json` 的 `version` 和 `CMakeLists.txt` 的 `PROJECT_VER` 一样；`minYay`、`apiLevel` 照开发包写 | — |
-| `./kit build --release` 编得过，镜像不超过 3.5 MB；`./kit check` 全过 | `./kit check` 的输出（里面有提交号和镜像 SHA-256） |
+| `./kit build --release` 编得过，镜像不超过 3.5 MB；应用仓库 CI 里 `./kit check` 全过 | CI 里 `./kit check` 的输出和运行链接（里面有提交号和镜像 SHA-256；Mac 上编的差 60 几个字节，不用它的） |
 | 所有改动都已提交、推到你的仓库（我们按提交号重编，字节要一样） | 提交号 |
 | 主机测试通过（`./kit test`） | 输出的最后一行 |
 | `devkit/` 没改过（`git -C devkit status` 是干净的） | — |

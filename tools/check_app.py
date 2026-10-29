@@ -200,7 +200,11 @@ def main():
             print("✗ " + p)
         print(f"有 {len(problems)} 处要改，改完再 ./kit check。")
         return 1
-    print("✓ 都过了：提交单里填上面的提交号和 SHA-256。")
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print("✓ 都过了：提交单里填上面的提交号和 SHA-256（这是应用仓库 CI 编的，跟审核重编的环境一样）。")
+    else:
+        print("✓ 都过了。提交单里的 SHA-256 填应用仓库 CI（GitHub 上）里 ./kit check 打的那一串：Mac 上编的和")
+        print("  Linux 上编的差 60 几个字节（ELF 哈希和两处校验，乐鑫两个平台的工具链不一样），代码一样。")
     return 0
 
 

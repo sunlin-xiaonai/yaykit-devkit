@@ -34,11 +34,11 @@ body:
     validations: {required: true}
   - type: input
     id: sha256
-    attributes: {label: "./kit build --release 编出来的镜像 SHA-256", description: "./kit check 打出来的那一串（照抄，别自己算）"}
+    attributes: {label: "镜像 SHA-256（应用仓库 CI 里 ./kit check 打的）", description: "推上去以后，应用仓库 GitHub Actions 的 Check 那一步 ./kit check 打出来的那一串，照抄。别填 Mac 上编的：Mac 和 Linux 编出来差 60 几个字节（ELF 哈希和两处校验），代码一样，但哈希对不上"}
     validations: {required: true}
   - type: textarea
     id: kitcheck
-    attributes: {label: ./kit check 的输出, description: 提交前先跑 ./kit check，要全过（最后一行是「✓ 都过了」）；整段贴进来, render: text}
+    attributes: {label: ./kit check 的输出, description: 应用仓库 CI 里那一次的整段输出（要全过，最后一行是「✓ 都过了」），再附上那次运行的链接, render: text}
     validations: {required: true}
   - type: textarea
     id: heap

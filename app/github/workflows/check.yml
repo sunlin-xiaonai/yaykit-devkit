@@ -1,5 +1,6 @@
 # The app's own checks on GitHub's machines (not Yaykit's): the release build in ESP-IDF 5.5.5's container, its host
 # tests, then ./kit check (manifest, version, the kit untouched, nothing that looks like a key or a round screen's id).
+# The image's SHA-256 ./kit check prints here is the one a submission gives.
 name: Check
 on:
   push:
@@ -22,3 +23,13 @@ jobs:
         run: ./kit build --release
       - name: Check
         run: ./kit check
+      # The release image this commit builds to, as the review rebuilds it (the same container): its SHA-256 is the
+      # submission's. compare_images.py tells it from a Mac build (they differ only in the ELF hash and two checksums).
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release
+          path: |
+            build-release/*.bin
+            build-release/sdkconfig
+            build-release/project_description.json
+          retention-days: 90
