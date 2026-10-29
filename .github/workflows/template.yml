@@ -1,6 +1,7 @@
 # The kit's template, built in ESP-IDF 5.5.5's container on GitHub's machines whenever the kit changes: it keeps
-# compiling, and its image hash is the one a Mac build of the same kit must match (the review rebuilds colleagues'
-# apps in this same container, scripts in rebuild.yml).
+# compiling, and its image hash is the one a Mac build of the same kit should match (the review rebuilds colleagues'
+# apps in this same container, rebuild.yml). The image, its ELF and sdkconfig are kept as the run's artifact, and the
+# version strings and ELF hash it carries are printed, to compare a build made elsewhere byte by byte.
 name: Template
 on:
   push:
@@ -29,3 +30,21 @@ jobs:
           idf.py -C "$P" -B "$K/build" -D "SDKCONFIG=$K/build/sdkconfig" \
             -D "SDKCONFIG_DEFAULTS=$P/sdkconfig.defaults;$K/config/firmware.defaults;$K/config/release.defaults" build
           sha256sum build/yaykit_template.bin | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: What the image says about itself (esp_app_desc_t, after the image and first segment headers)
+        shell: bash
+        run: |
+          python3 - build/yaykit_template.bin <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import sys
+          d = open(sys.argv[1], 'rb').read()
+          o = 0x20
+          text = lambda a, b: d[o + a:o + b].split(b'\0')[0].decode()
+          print(f"version={text(16, 48)} project={text(48, 80)} idf_ver={text(112, 144)} elf_sha256={d[o + 144:o + 176].hex()}")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: template
+          path: |
+            build/yaykit_template.bin
+            build/yaykit_template.elf
+            build/sdkconfig
+          retention-days: 90

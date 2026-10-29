@@ -1,12 +1,12 @@
 {
   "name": "yaykit-devkit",
-  "version": "1.1",
+  "version": "1.2",
   "yay": "0.1.10",
   "apiLevel": 3,
   "idf": {
     "version": "v5.5.5",
     "commit": "b774170ff46c393eeb5e495ea37936038d3f4f4f"
   },
-  "source": "318c3f4854d6b0cb8b2ac14df88567e6bd38cb7e",
-  "date": "2026-10-29T09:32:27+08:00"
+  "source": "817dcc6cc9d9c1ac4cf92cddf061af12f7f25b21",
+  "date": "2026-10-29T09:43:39+08:00"
 }
