@@ -1,0 +1,4 @@
+# An app in its own repository (kit new): the development kit is its devkit/ submodule. Applied after the app's own
+# sdkconfig.defaults, so the partition table is the kit's yaykit-v1 one.
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="devkit/firmware/partitions/yaykit-v1.csv"
+CONFIG_PARTITION_TABLE_FILENAME="devkit/firmware/partitions/yaykit-v1.csv"

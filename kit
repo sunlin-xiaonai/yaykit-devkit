@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# kit: the Yaykit development kit's one command (README.md). `setup` and `new` run from the kit; the rest from an app
+# made by `kit new`, through its own ./kit (which runs the kit pinned in its devkit/ submodule).
+#
+# It never erases a round screen: install writes one app slot (2 or 3) over USB through the recovery, nothing else.
+set -euo pipefail
+
+KIT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+STATE="${YAYKIT_DEVKIT_HOME:-$HOME/.yaykit-devkit}"
+SLOT_MAX=3670016  # 3.5 MB: an app slot image (yaykit-v1)
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'kit: %s\n' "$*" >&2; exit 1; }
+field() { /usr/bin/python3 -c 'import json, sys
+d = json.load(open(sys.argv[1]))
+for k in sys.argv[2].split("."): d = d[k]
+print(d)' "$KIT/devkit.json" "$1"; }
+
+[ -f "$KIT/devkit.json" ] || die "no devkit.json next to this script: run the kit from its own repository"
+VERSION=$(field version)
+IDF_COMMIT=$(field idf.commit)
+
+usage() {
+  cat <<EOF
+Yaykit 开发包 $VERSION（Yay $(field yay) 起，接口级别 $(field apiLevel)）
+
+  kit setup [--cn]              装好环境：ESP-IDF $(field idf.version)（钉在 ${IDF_COMMIT:0:8}）。--cn 走国内镜像
+  kit new <slug> [--dir <目录>]  从模板起一个新应用（一个应用一个 git 仓库，开发包作为 devkit/ 子模块）
+
+在应用目录里（用应用自己的 ./kit）：
+  ./kit build [--release]       编译，再跑主机测试；--release 是提交用的那份（不带开发命令）
+  ./kit test                    只跑主机测试（不用 ESP-IDF）
+  ./kit install --slot 2|3 [--release] [--no-open]
+                                USB 写进测试圆屏的位置 2 或 3，写完直接打开（不擦别的，不用签名）
+  ./kit logs [秒数]             看圆屏的日志（默认 30 秒）
+  ./kit snap [文件.png]         截一张圆屏的图
+  ./kit heap                    看内存（内部 RAM 不能低于 40 KB）
+  ./kit info                    圆屏上现在跑的是什么
+                                插着不止一台圆屏时，用 YAYKIT_PORT=/dev/cu.usbmodem… 选一台
+  ./kit check                   提交前的检查：清单、版本、开发包没改过、改动都提交了、提交用的那份编过且合规
+  ./kit version                 这个应用用的开发包版本
+  ./kit update <版本>           换一版开发包（比如 1.1）
+EOF
+}
+
+# ---------------------------------------------------------------- ESP-IDF
+
+# safe.directory: in a container (GitHub's, or the review's) ESP-IDF belongs to another user.
+idf_ok() { [ -n "${1:-}" ] && [ -f "$1/export.sh" ] && [ "$(git -c safe.directory='*' -C "$1" rev-parse HEAD 2>/dev/null)" = "$IDF_COMMIT" ]; }
+sha256() { if command -v shasum >/dev/null; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
+
+idf_path() {
+  local p
+  for p in "$(cat "$STATE/idf_path" 2>/dev/null || true)" "${IDF_PATH:-}" "$HOME/esp/esp-idf" "$HOME/esp/esp-idf-v5.5.5"; do
+    if idf_ok "$p"; then printf '%s\n' "$p"; return 0; fi
+  done
+  return 1
+}
+
+idf_env() {
+  local p
+  p=$(idf_path) || die "没找到 ESP-IDF $(field idf.version)（${IDF_COMMIT:0:8}）：先在开发包目录里跑 ./kit setup"
+  export IDF_PATH="$p"
+  # shellcheck disable=SC1091
+  . "$IDF_PATH/export.sh" >/dev/null 2>&1 || die "ESP-IDF 的环境没起来：再跑一次 ./kit setup"
+  command -v ccache >/dev/null && export IDF_CCACHE_ENABLE=1
+  return 0
+}
+
+cmd_setup() {
+  local cn=0
+  [ "${1:-}" = "--cn" ] && cn=1
+  [ "$(uname)" = Darwin ] || say "提示：开发包先只为 Mac 写了安装；别的系统照 ESP-IDF 官方文档装 $(field idf.version)（提交 $IDF_COMMIT）。"
+  if [ "$(uname)" = Darwin ] && ! xcode-select -p >/dev/null 2>&1; then
+    xcode-select --install || true
+    die "先装好 Xcode 命令行工具（刚弹出的窗口），装完再跑一次 ./kit setup"
+  fi
+  command -v git >/dev/null || die "没有 git"
+  command -v python3 >/dev/null || die "没有 python3"
+  mkdir -p "$STATE"
+  local p
+  if p=$(idf_path); then
+    say "ESP-IDF 已经在 $p（${IDF_COMMIT:0:8}）"
+  else
+    p="$HOME/esp/esp-idf-v5.5.5"
+    [ -e "$p" ] && die "$p 已经有东西，但不是要的那个提交：挪开或删掉再跑"
+    local url=https://github.com/espressif/esp-idf.git
+    [ $cn = 1 ] && url=https://gitee.com/EspressifSystems/esp-idf.git
+    say "下载 ESP-IDF 到 $p（几个 GB，要一阵子）"
+    mkdir -p "$(dirname "$p")"
+    git clone --quiet --filter=blob:none "$url" "$p"
+    git -C "$p" checkout --quiet "$IDF_COMMIT"
+    git -C "$p" submodule update --init --recursive --quiet
+  fi
+  printf '%s\n' "$p" >"$STATE/idf_path"
+  [ $cn = 1 ] && export IDF_GITHUB_ASSETS=dl.espressif.cn/github_assets
+  say "安装 ESP32-S3 的编译工具"
+  "$p/install.sh" esp32s3 >"$STATE/install.log" 2>&1 || die "工具没装好，日志在 $STATE/install.log"
+  idf_env
+  python -c 'import serial' 2>/dev/null || python -m pip install --quiet pyserial
+  say "好了：ESP-IDF $(field idf.version) 在 $p。下一步：./kit new <你的应用 slug>"
+}
+
+# ---------------------------------------------------------------- a new app
+
+cmd_new() {
+  local slug="${1:-}" dir="$PWD"
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dir) dir="$2"; shift 2 ;;
+      *) die "不认识的参数：$1" ;;
+    esac
+  done
+  [[ "$slug" =~ ^[a-z][a-z0-9-]{1,30}[a-z0-9]$ ]] || die "slug 只用小写字母、数字和连字符，字母开头，3–32 个字符，比如 my-timer"
+  case "$slug" in template | yay | launcher | recovery | system) die "$slug 是保留的名字" ;; esac
+  # Record kinds and commands take [a-z0-9.] only (yk_record_kind_ok): my-timer's are mytimer.count, mytimer.status.
+  local app="$dir/$slug" under=${slug//-/_} prefix=${slug//-/} upper
+  upper=$(printf '%s' "$under" | tr '[:lower:]' '[:upper:]')
+  [ -e "$app" ] && die "$app 已经有了"
+  local url
+  url=$(git -C "$KIT" remote get-url origin 2>/dev/null) || die "开发包不是 git clone 下来的，没法引用它的版本"
+
+  mkdir -p "$app"
+  (cd "$KIT/firmware/_template" && tar -cf - --exclude build --exclude managed_components --exclude sdkconfig .) | (cd "$app" && tar -xf -)
+  sed -i '' "s/project(yaykit_template)/project(yaykit_$under)/" "$app/CMakeLists.txt"
+  sed -i '' -e "s/#define APP_SLUG \"template\"/#define APP_SLUG \"$slug\"/" -e "s/TAG = \"template\"/TAG = \"$slug\"/" \
+    -e "s/TEMPLATE_/${upper}_/g" -e "s/\"template\\./\"$prefix./g" "$app/main/main.c"
+  sed -i '' "s/template host tests/$slug host tests/" "$app/test/test_counter.c"
+  /usr/bin/python3 - "$app/app.json" "$slug" "$(field yay)" "$(field apiLevel)" <<'EOF'
+import json, sys
+path, slug, yay, level = sys.argv[1:]
+spec = json.load(open(path))
+spec.update(slug=slug, version="0.1.0", minYay=yay, apiLevel=int(level), name={"zh": slug, "en": slug})
+json.dump(spec, open(path, "w"), ensure_ascii=False, indent=2)
+open(path, "a").write("\n")
+EOF
+  cp "$KIT/app/kit" "$app/kit"
+  cp "$KIT/app/gitignore" "$app/.gitignore"
+  [ -f "$KIT/app/README.md" ] && sed "s/{{slug}}/$slug/g" "$KIT/app/README.md" >"$app/README.md"
+  [ -f "$KIT/app/CLAUDE.md" ] && cp "$KIT/app/CLAUDE.md" "$app/CLAUDE.md"
+  if [ -d "$KIT/skills/yaykit-app" ]; then
+    mkdir -p "$app/.claude/skills"
+    cp -R "$KIT/skills/yaykit-app" "$app/.claude/skills/"
+  fi
+  if [ -d "$KIT/app/github" ]; then
+    mkdir -p "$app/.github"
+    cp -R "$KIT/app/github/." "$app/.github/"
+  fi
+
+  git -C "$app" init --quiet -b main
+  git -C "$app" -c protocol.file.allow=always submodule --quiet add "$url" devkit
+  git -C "$app/devkit" checkout --quiet "$(git -C "$KIT" rev-parse HEAD)"
+  git -C "$app" add -A
+  git -C "$app" commit --quiet -m "从 Yaykit 开发包 $VERSION 新建 $slug"
+  say "建好了：$app（开发包 $VERSION）。"
+  say "下一步：cd $app && ./kit build"
+}
+
+# ---------------------------------------------------------------- in an app
+
+app_dir() {
+  local d="${YAYKIT_APP:-$PWD}"
+  while [ "$d" != / ]; do
+    [ -f "$d/app.json" ] && [ -f "$d/CMakeLists.txt" ] && { printf '%s\n' "$d"; return 0; }
+    d=$(dirname "$d")
+  done
+  die "这里不是应用目录（找不到 app.json）：先 kit new，或者 cd 到应用里"
+}
+
+cmd_test() {
+  local app
+  app=$(app_dir)
+  if [ -x "$app/test/run.sh" ] || [ -f "$app/test/run.sh" ]; then
+    bash "$app/test/run.sh"
+  else
+    say "没有 test/run.sh：这个应用还没有主机测试"
+  fi
+}
+
+cmd_build() {
+  local app release=0 build defaults
+  app=$(app_dir)
+  [ "${1:-}" = "--release" ] && release=1
+  case "$app" in
+    /tmp/* | /private/* | /var/folders/*)
+      say "提示：应用在 $app 下：macOS 上 /tmp 这类目录编出来的字节每次不一样，提交用的那份要放在别处（比如 ~/apps）编。" ;;
+  esac
+  idf_env
+  build="$app/build"
+  defaults="$app/sdkconfig.defaults;$KIT/config/firmware.defaults;$KIT/config/app.defaults"
+  if [ $release = 1 ]; then
+    build="$app/build-release"
+    defaults="$defaults;$KIT/config/release.defaults"
+  fi
+  mkdir -p "$build"
+  # sdkconfig only takes the defaults it lacks: made again when any of them changed.
+  local f
+  for f in ${defaults//;/ }; do
+    if [ -f "$build/sdkconfig" ] && [ "$f" -nt "$build/sdkconfig" ]; then rm -f "$build/sdkconfig"; fi
+  done
+  idf.py -C "$app" -B "$build" -D "SDKCONFIG=$build/sdkconfig" -D "SDKCONFIG_DEFAULTS=$defaults" build
+  cmd_test
+  local bin size
+  bin=$(/usr/bin/python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["app_bin"])' "$build/project_description.json")
+  size=$(wc -c <"$build/$bin" | tr -d ' ')
+  [ "$size" -le $SLOT_MAX ] || die "镜像 $size 字节，超过位置的上限 $SLOT_MAX 字节（3.5 MB）"
+  say "编好了：$build/$bin，$size 字节（上限 $SLOT_MAX），SHA-256 $(sha256 "$build/$bin")"
+}
+
+cmd_update() {
+  local app want="${1:-}"
+  app=$(app_dir)
+  [[ "$want" =~ ^[0-9]+\.[0-9]+$ ]] || die "要哪一版开发包：./kit update 1.1"
+  git -C "$app/devkit" fetch --quiet --tags origin
+  git -C "$app/devkit" rev-parse --quiet --verify "refs/tags/v$want" >/dev/null || die "开发包没有 $want 这一版"
+  git -C "$app/devkit" checkout --quiet "v$want"
+  git -C "$app" add devkit
+  say "开发包换成了 $want（还没提交）。先 ./kit build 和自测，没问题再 git commit。"
+}
+
+# Which round screen: YAYKIT_PORT, or the only one plugged in (never a guess between two).
+dev() {
+  idf_env
+  local port=() n
+  if [ -n "${YAYKIT_PORT:-}" ]; then
+    port=(--port "$YAYKIT_PORT")
+  else
+    n=$(ls /dev/cu.usbmodem* 2>/dev/null | wc -l | tr -d ' ')
+    [ "$n" -le 1 ] || die "插着 $n 台圆屏：YAYKIT_PORT=<其中一台> ./kit …（ls /dev/cu.usbmodem* 看有哪些）"
+  fi
+  python "$KIT/firmware/tools/yay_dev.py" ${port[@]+"${port[@]}"} "$@"
+}
+
+# What is shown, with the round screen's id and USB serial masked: logs and info are pasted into public submissions.
+shown() {
+  set -o pipefail
+  dev "$@" | sed -l -E -e 's/yk_[0-9a-f]{12}/yk_xxxxxxxxxxxx/g' -e 's/([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}/xx:xx:xx:xx:xx:xx/g'
+}
+
+cmd_install() {
+  local app slot="" build open=1
+  app=$(app_dir)
+  build="$app/build"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --slot) slot="$2"; shift 2 ;;
+      --release) build="$app/build-release"; shift ;;
+      --no-open) open=0; shift ;;
+      *) die "不认识的参数：$1" ;;
+    esac
+  done
+  [ "$slot" = 2 ] || [ "$slot" = 3 ] || die "--slot 只能是 2 或 3（位置 1 是 Yay）"
+  [ -f "$build/project_description.json" ] || die "还没编：先 ./kit build$([ "$build" = "$app/build-release" ] && printf ' --release')"
+  if [ $open = 1 ]; then dev install --slot "$slot" "$build" --open; else dev install --slot "$slot" "$build"; fi
+}
+
+case "${1:-help}" in
+  setup) shift; cmd_setup "$@" ;;
+  new) shift; cmd_new "$@" ;;
+  build) shift; cmd_build "$@" ;;
+  test) cmd_test ;;
+  install) shift; cmd_install "$@" ;;
+  logs) shown logs "${2:-30}" ;;
+  snap) dev snap "${2:-snap.png}" ;;
+  heap) shown heap ;;
+  info) shown info ;;
+  version) cat "$KIT/devkit.json" ;;
+  update) shift; cmd_update "$@" ;;
+  check) /usr/bin/env python3 "$KIT/tools/check_app.py" "$KIT" "$(app_dir)" ;;
+  help | -h | --help) usage ;;
+  *) usage; exit 1 ;;
+esac

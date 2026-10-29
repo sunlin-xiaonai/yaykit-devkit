@@ -1,0 +1,4 @@
+## IDF Component Manager manifest; each firmware locks the versions in its dependencies.lock.
+dependencies:
+  # WebSocket client over esp-tls (docs/design/yay-device.md 4.1)
+  espressif/esp_websocket_client: "==1.8.0"

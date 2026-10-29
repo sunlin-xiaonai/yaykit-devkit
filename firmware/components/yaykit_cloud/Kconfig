@@ -1,0 +1,11 @@
+menu "Yaykit cloud"
+
+config YK_CLOUD_ORIGIN
+    string "Device API origin"
+    default "https://device.yaykit.io"
+    help
+        Origin of the device API (services/device). Yaykit has one environment since 2026-10-17. Until
+        image signing ships (docs/architecture/device-platform.md 6.2), cloud firmware goes only to
+        internal test builds, not public releases.
+
+endmenu

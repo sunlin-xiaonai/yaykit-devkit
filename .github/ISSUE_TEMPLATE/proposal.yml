@@ -1,0 +1,52 @@
+name: 立项
+description: 要做一个新应用：定名字、说清做什么、要哪些云能力
+title: "立项：<slug>"
+labels: [proposal]
+body:
+  - type: markdown
+    attributes:
+      value: 这张单是公开的，不要贴账号、手机号、邮箱、令牌、设备编号。
+  - type: input
+    id: slug
+    attributes: {label: slug, description: 小写字母、数字和连字符，字母开头；定了就不改。我们会先查有没有重名, placeholder: my-timer}
+    validations: {required: true}
+  - type: input
+    id: names
+    attributes: {label: 中文名 / 英文名, placeholder: 计时器 / Timer}
+    validations: {required: true}
+  - type: textarea
+    id: what
+    attributes: {label: 一句话：它能做什么}
+    validations: {required: true}
+  - type: textarea
+    id: phrases
+    attributes:
+      label: 用户会说的话（3–5 句）
+      description: 点了名的（「打开计时器」）和没点名、只说想做什么的（「帮我计时十分钟」）都要有
+    validations: {required: true}
+  - type: checkboxes
+    id: cloud
+    attributes:
+      label: 要哪些云能力
+      description: 要云能力的，开通要我们部署一次，可能得等；能力或限额改了要再开通一次
+      options:
+        - label: 不要（只在圆屏上跑）
+        - label: AI 对话
+        - label: 语音识别
+        - label: 语音合成
+        - label: 存数据或文件
+        - label: 别的（写在下面）
+  - type: checkboxes
+    id: hardware
+    attributes:
+      label: 要哪些硬件
+      options:
+        - label: 网络
+        - label: 麦克风
+        - label: 喇叭
+        - label: 姿态（拿起、摇、扣下）
+        - label: TF 卡
+        - label: 蓝牙
+  - type: textarea
+    id: notes
+    attributes: {label: 还想说的}

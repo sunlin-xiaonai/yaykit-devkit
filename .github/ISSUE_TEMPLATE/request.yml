@@ -1,0 +1,19 @@
+name: 需求或问题
+description: 组件缺一个能力、开发包有问题、文档没写清
+title: "需求：<一句话>"
+labels: [request]
+body:
+  - type: markdown
+    attributes:
+      value: 这张单是公开的，不要贴账号、手机号、邮箱、令牌、设备编号；日志用 ./kit logs 取（设备编号已经抹掉了）。
+  - type: input
+    id: devkit
+    attributes: {label: 开发包版本（./kit version）, placeholder: "1.0"}
+    validations: {required: true}
+  - type: textarea
+    id: what
+    attributes: {label: 要什么或者哪里不对, description: 想做到什么、现在卡在哪、试过什么}
+    validations: {required: true}
+  - type: textarea
+    id: logs
+    attributes: {label: 日志或报错, render: text}

@@ -1,0 +1,29 @@
+# The kit's template, built in ESP-IDF 5.5.5's container on GitHub's machines whenever the kit changes: it keeps
+# compiling, and its image hash is the one a Mac build of the same kit must match (the review rebuilds colleagues'
+# apps in this same container, scripts in rebuild.yml).
+name: Template
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.5
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Release build of firmware/_template, its hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory '*'
+          . "$IDF_PATH/export.sh" >/dev/null
+          P=firmware/_template
+          idf.py -C "$P" -B build -D SDKCONFIG=build/sdkconfig \
+            -D "SDKCONFIG_DEFAULTS=$P/sdkconfig.defaults;config/firmware.defaults;config/release.defaults" build
+          sha256sum build/yaykit_template.bin | tee -a "$GITHUB_STEP_SUMMARY"

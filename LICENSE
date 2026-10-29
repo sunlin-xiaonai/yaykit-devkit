@@ -1,0 +1,41 @@
+Yaykit 开发包许可
+
+版权所有 © 2026 北京仲君科技有限公司。保留所有权利。
+
+本仓库（Yaykit 开发包，含公共组件源码、模板、工具、文档和 skill）的著作权归上述权利人所有。权利人只许可你做下面两件事：
+
+1. 查看、阅读本仓库的内容；
+2. 使用本仓库的内容，为 Yay 圆屏开发 Yaykit 应用（扩展固件），并按开发包文档里的流程提交给权利人审核和发布。为此，你可以把开发包引用进你自己的应用仓库，在你自己的电脑和测试圆屏上编译、运行。
+
+除此以外，未经权利人书面同意，不得复制、修改、分发、再许可、出售本仓库的内容或其中任何部分，也不得把它用于 Yaykit 以外的产品。你自己写的应用代码归你所有；它和开发包合在一起编出来的固件，只能按上面第 2 条的流程使用。
+
+**第三方部分不在此列。** 本仓库里带的、以及编译时拉进来的别人的东西，各按各自的许可，上面的限制不适用于它们：其中 Noto Sans SC、Noto Sans JP 字体子集按 SIL Open Font License 1.1（许可文件 `OFL.txt`、`OFL-NotoSansJP.txt` 跟着字体包），LVGL、ESP-IDF 及其组件（cJSON、Mbed TLS、lwIP、FreeRTOS 等）、乐鑫组件库里的组件按各自的许可。名字、版本和许可见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+
+本仓库按「现状」提供，不附带任何明示或默示的保证。权利人对因使用本仓库造成的任何损失不承担责任。
+
+---
+
+Yaykit Development Kit Licence
+
+Copyright © 2026 北京仲君科技有限公司. All rights reserved.
+
+This repository (the Yaykit development kit: the shared components' source, the template, the tools, the documents
+and the skill) belongs to the rights holder above, who permits you only to:
+
+1. view and read its contents; and
+2. use its contents to develop Yaykit apps (extension firmware) for the Yay round screen, and submit them to the
+   rights holder for review and release as the kit's documents describe. To that end you may reference the kit from
+   your own app repository and build and run it on your own computer and test round screen.
+
+Nothing else is permitted without the rights holder's written consent: you may not copy, modify, distribute,
+sublicense or sell this repository or any part of it, or use it for any product other than Yaykit. The code of your
+own app is yours; firmware built from it together with the kit may be used only as point 2 describes.
+
+**Third-party parts are excepted.** What this repository carries from others, and what a build fetches, is under
+its own licence and the restrictions above do not apply to it: the Noto Sans SC and Noto Sans JP font subsets under the
+SIL Open Font License 1.1 (`OFL.txt` and `OFL-NotoSansJP.txt` go with the font pack), LVGL, ESP-IDF and its components
+(cJSON, Mbed TLS, lwIP, FreeRTOS and others) and the components from Espressif's registry under theirs. Names, versions
+and licences: [THIRD_PARTY.md](THIRD_PARTY.md).
+
+This repository is provided "as is", without warranty of any kind, express or implied. The rights holder is not
+liable for any loss arising from its use.

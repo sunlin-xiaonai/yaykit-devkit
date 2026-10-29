@@ -1,0 +1,2 @@
+# The build that is submitted and released (kit build --release): no development commands.
+CONFIG_YAY_DEV=n

@@ -1,0 +1,2 @@
+# Extra packaging settings, applied after the independent firmware repository defaults.
+CONFIG_APP_REPRODUCIBLE_BUILD=y

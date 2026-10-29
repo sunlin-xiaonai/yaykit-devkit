@@ -1,0 +1,20 @@
+menu "Yay app"
+
+config YAY_DEV
+    bool "Development build: yay console commands"
+    default n
+    help
+        Adds `yay tap|double|hold|say|launch` (and what the firmware registers, e.g. state, action, inbox,
+        server) for scripted tests without a person or the cloud (docs/design/yay-device.md 12). Release
+        builds leave it off.
+
+config YAY_ACCEPT
+    bool "Acceptance commands, kept in release builds"
+    default y
+    help
+        The few `yay` console commands acceptance scripts need on a release build (docs/development/
+        firmware-guide.md, 正式版留下的命令): tap, double, hold <ms>, say <s> (the side key, simulated; a
+        say's text hint is for development servers only) and records [drop <seq>] (the record outbox).
+        Development builds (YAY_DEV) have them anyway, with the rest of `yay`.
+
+endmenu

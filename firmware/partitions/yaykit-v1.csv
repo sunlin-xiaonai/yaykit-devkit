@@ -1,0 +1,16 @@
+# Yaykit unified layout v1 (32 MB flash). Installed once over USB with the launcher;
+# apps are 3.5 MB slot images written over the air. Executable code stays below 16 MB.
+# Name,     Type, SubType,   Offset,    Size
+nvs,        data, nvs,       0x9000,    0x40000
+otadata,    data, ota,       0x49000,   0x2000
+phy_init,   data, phy,       0x4B000,   0x1000
+coredump,   data, coredump,  0x4C000,   0x10000
+factory,    app,  factory,   0x60000,   0x200000
+ota_0,      app,  ota_0,     0x260000,  0x380000
+ota_1,      app,  ota_1,     0x5E0000,  0x380000
+ota_2,      app,  ota_2,     0x960000,  0x380000
+fonts,      data, undefined, 0xCE0000,  0x300000
+mapspare,   data, undefined, 0xFE0000,  0x20000
+pkgcache,   data, undefined, 0x1000000, 0xA00000
+models,     data, undefined, 0x1A00000, 0x300000
+userfs,     data, undefined, 0x1D00000, 0x300000

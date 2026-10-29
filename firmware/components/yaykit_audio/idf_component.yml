@@ -1,0 +1,6 @@
+## IDF Component Manager manifest; each firmware locks the versions in its dependencies.lock.
+dependencies:
+  # nsnet2 noise suppression and vadnet voice activity (docs/design/yay-device.md 6.2, P0 3)
+  espressif/esp-sr: "==2.5.5"
+  # Opus encoder (and the decoder yaykit_speak uses), libopus
+  espressif/esp_audio_codec: "==2.6.2"

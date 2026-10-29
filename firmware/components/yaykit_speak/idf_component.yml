@@ -1,0 +1,4 @@
+## IDF Component Manager manifest; each firmware locks the versions in its dependencies.lock.
+dependencies:
+  # Opus decoder (libopus), the same version yaykit_audio's encoder uses
+  espressif/esp_audio_codec: "==2.6.2"

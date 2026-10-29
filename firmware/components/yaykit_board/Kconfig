@@ -1,0 +1,29 @@
+menu "Yaykit board"
+
+config YK_BOARD_LCD_BUFFER_LINES
+    int "LVGL draw buffer height (lines)"
+    range 8 466
+    default 40
+    help
+        One band of this many lines (466 x lines x 2 bytes) in internal, DMA-capable RAM. 40 lines (37 KB) by
+        default; the Yay main firmware, which also runs Wi-Fi, TLS and the speech models, uses fewer to keep
+        40 KB of internal RAM free. Keep it even (the panel's even-start rule).
+
+config YK_BOARD_LVGL_CORE
+    int "Core for the LVGL task (-1: either)"
+    range -1 1
+    default -1
+    help
+        The Yay main firmware pins it to core 0: its audio front end takes over half of core 1 while listening, and
+        the frame that shows 「我在听」 must not wait behind it.
+
+config YK_BOARD_TOUCH_INT_GPIO
+    int "Touch controller interrupt pin (-1: polled)"
+    range -1 48
+    default -1
+    help
+        TP_INT of the CST820. The reference schematic puts it on GPIO11 or GPIO13. Measured 2026-10-21: GPIO13
+        toggles at 59 Hz (the panel's TE), GPIO11 idles high, so TP_INT should be GPIO11; set it once a touch
+        confirms it. Until then the fast touch reader polls (board_touch_fast_start).
+
+endmenu

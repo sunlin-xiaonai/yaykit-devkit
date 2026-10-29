@@ -1,0 +1,67 @@
+# A colleague's app rebuilt for the review (docs: from-idea-to-store.md 5), on GitHub's machines in ESP-IDF 5.5.5's
+# container: the app at the submitted commit with the official kit its devkit/ pins, ./kit build --release and
+# ./kit check, the release build uploaded. Yaykit downloads it and signs the image as bytes on its release machine,
+# which never builds anyone's code. Run by the kit's maintainers (workflow_dispatch).
+name: Rebuild
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: The app's repository (https://github.com/<owner>/<repo>)
+        required: true
+      commit:
+        description: The commit from the submission (40 hex digits)
+        required: true
+permissions:
+  contents: read
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.5
+    timeout-minutes: 40
+    env:
+      REPO: ${{ inputs.repository }}
+      COMMIT: ${{ inputs.commit }}
+      KIT_URL: https://github.com/vzheng56/yaykit-devkit
+    steps:
+      - name: The app at that commit, with the official kit at a version
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REPO" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "::error::repository is https://github.com/<owner>/<repo>"; exit 1; }
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::commit is 40 hex digits"; exit 1; }
+          git config --global --add safe.directory '*'
+          mkdir -p /build
+          git clone --quiet --no-checkout "$REPO" /build/app
+          git -C /build/app -c advice.detachedHead=false checkout --quiet "$COMMIT"
+          url=$(git -C /build/app config -f .gitmodules submodule.devkit.url || true)
+          [ "${url%.git}" = "$KIT_URL" ] || { echo "::error::devkit/ is $url, not $KIT_URL"; exit 1; }
+          git -C /build/app submodule --quiet update --init devkit
+          git -C /build/app/devkit fetch --quiet --tags origin
+          git -C /build/app/devkit describe --tags --exact-match >/build/kit-tag
+      - name: Release build and ./kit check (the app builds at /build/app, which pack-firmware.ts maps back)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /build/app
+          ./kit build --release
+          ./kit check
+          bin=$(python3 -c 'import json; print(json.load(open("build-release/project_description.json"))["app_bin"])')
+          sha=$(sha256sum "build-release/$bin" | cut -d' ' -f1)
+          printf '{"repository":"%s","commit":"%s","devkit":{"tag":"%s","commit":"%s"},"container":"espressif/idf:v5.5.5","image":{"file":"%s","size":%s,"sha256":"%s"}}\n' \
+            "$REPO" "$COMMIT" "$(cat /build/kit-tag)" "$(git -C devkit rev-parse HEAD)" "$bin" "$(wc -c <"build-release/$bin")" "$sha" \
+            | tee build-release/rebuild.json
+          echo "image sha256: $sha" >>"$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rebuild
+          # What pack-firmware.ts reads (flasher_args.json names the rest; the font pack is the source's, under devkit/).
+          path: |
+            /build/app/build-release/rebuild.json
+            /build/app/build-release/project_description.json
+            /build/app/build-release/flasher_args.json
+            /build/app/build-release/sdkconfig
+            /build/app/build-release/*.bin
+            /build/app/build-release/bootloader/bootloader.bin
+            /build/app/build-release/partition_table/partition-table.bin
+          retention-days: 30

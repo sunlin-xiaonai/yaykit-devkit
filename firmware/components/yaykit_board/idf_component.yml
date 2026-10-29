@@ -1,0 +1,20 @@
+## IDF Component Manager manifest. Every firmware project locks the resolved versions in its own
+## dependencies.lock, which is committed; CI fails when a lock is out of date.
+## Versions are held at the ones Tikpal 0.4.9 shipped (its dependencies.lock at 5a299f5c), which run on the
+## device; move them only together with a device check.
+dependencies:
+  # LVGL 9, the version the Tikpal firmware and Breathe were tuned on
+  lvgl/lvgl: "==9.6.0"
+  # LVGL <-> esp_lcd glue: one flush band, one lock, one task
+  espressif/esp_lvgl_adapter: "==0.6.4"
+  # SH8601 AMOLED driver (QSPI), same component the factory image used
+  waveshare/esp_lcd_sh8601: "==2.0.0"
+  # ES8311 speaker codec / ES7210 microphone ADC
+  espressif/esp_codec_dev: "==1.5.11"
+  # Pulled in by esp_lvgl_adapter and esp_lv_decoder; pinned here only for the version (require: no).
+  espressif/button:
+    version: "==4.2.1"
+    require: no
+  espressif/libpng:
+    version: "==1.6.58~1"
+    require: no
