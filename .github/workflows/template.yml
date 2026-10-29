@@ -23,7 +23,9 @@ jobs:
           set -euo pipefail
           git config --global --add safe.directory '*'
           . "$IDF_PATH/export.sh" >/dev/null
-          P=firmware/_template
-          idf.py -C "$P" -B build -D SDKCONFIG=build/sdkconfig \
-            -D "SDKCONFIG_DEFAULTS=$P/sdkconfig.defaults;config/firmware.defaults;config/release.defaults" build
+          # Absolute paths: idf.py reads SDKCONFIG and SDKCONFIG_DEFAULTS relative to the project (-C), not here.
+          K=$PWD
+          P=$K/firmware/_template
+          idf.py -C "$P" -B "$K/build" -D "SDKCONFIG=$K/build/sdkconfig" \
+            -D "SDKCONFIG_DEFAULTS=$P/sdkconfig.defaults;$K/config/firmware.defaults;$K/config/release.defaults" build
           sha256sum build/yaykit_template.bin | tee -a "$GITHUB_STEP_SUMMARY"
